@@ -371,18 +371,6 @@ public class BungeeCord extends ProxyServer
                     connectionLock.readLock().unlock();
                 }
 
-                getLogger().info( "Closing IO threads" );
-                bossEventLoopGroup.shutdownGracefully();
-                workerEventLoopGroup.shutdownGracefully();
-                while (true) {
-                    try {
-                        bossEventLoopGroup.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-                        workerEventLoopGroup.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-                        break;
-                    } catch (InterruptedException ex) {
-                    }
-                }
-
                 if ( reconnectHandler != null )
                 {
                     getLogger().info( "Saving reconnect locations" );
@@ -409,6 +397,18 @@ public class BungeeCord extends ProxyServer
                     }
                     getScheduler().cancel( plugin );
                     plugin.getExecutorService().shutdownNow();
+                }
+
+                getLogger().info( "Closing IO threads" );
+                bossEventLoopGroup.shutdownGracefully();
+                workerEventLoopGroup.shutdownGracefully();
+                while (true) {
+                    try {
+                        bossEventLoopGroup.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                        workerEventLoopGroup.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                        break;
+                    } catch (InterruptedException ex) {
+                    }
                 }
 
                 getLogger().info( "Thank you and goodbye" );
