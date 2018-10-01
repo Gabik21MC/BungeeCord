@@ -1,5 +1,8 @@
 package net.md_5.bungee.netty;
 
+import java.util.concurrent.TimeUnit;
+
+import io.netty.channel.ChannelFutureListener;
 import net.md_5.bungee.compress.PacketCompressor;
 import net.md_5.bungee.compress.PacketDecompressor;
 import net.md_5.bungee.protocol.PacketWrapper;
@@ -11,6 +14,7 @@ import lombok.Getter;
 import net.md_5.bungee.protocol.MinecraftDecoder;
 import net.md_5.bungee.protocol.MinecraftEncoder;
 import net.md_5.bungee.protocol.Protocol;
+import net.md_5.bungee.protocol.packet.Kick;
 
 public class ChannelWrapper
 {
@@ -18,6 +22,8 @@ public class ChannelWrapper
     private final Channel ch;
     @Getter
     private volatile boolean closed;
+    @Getter
+    private volatile boolean closing;
 
     public ChannelWrapper(ChannelHandlerContext ctx)
     {
@@ -54,19 +60,61 @@ public class ChannelWrapper
 
     public void close()
     {
+        close(null);
+    }
+
+    public void close(Object packet)
+    {
         if ( !closed )
         {
-            closed = true;
-            ch.flush();
-            ch.close();
+            closed = closing = true;
+
+            if ( packet != null && ch.isActive() )
+            {
+                ch.writeAndFlush( packet ).addListeners( ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE, ChannelFutureListener.CLOSE );
+                ch.eventLoop().schedule( new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        ch.close();
+                    }
+                }, 250, TimeUnit.MILLISECONDS );
+            } else
+            {
+                ch.flush();
+                ch.close();
+            }
         }
     }
+
 
     public void addBefore(String baseName, String name, ChannelHandler handler)
     {
         Preconditions.checkState( ch.eventLoop().inEventLoop(), "cannot add handler outside of event loop" );
         ch.pipeline().flush();
         ch.pipeline().addBefore( baseName, name, handler );
+    }
+
+    public void delayedClose(final Kick kick)
+    {
+        if ( !closing )
+        {
+            closing = true;
+
+            // Minecraft client can take some time to switch protocols.
+            // Sending the wrong disconnect packet whilst a protocol switch is in progress will crash it.
+            // Delay 250ms to ensure that the protocol switch (if any) has definitely taken place.
+            ch.eventLoop().schedule( new Runnable()
+            {
+
+                @Override
+                public void run()
+                {
+                    close( kick );
+                }
+            }, 250, TimeUnit.MILLISECONDS );
+        }
     }
 
     public Channel getHandle()
