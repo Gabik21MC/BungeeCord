@@ -371,6 +371,10 @@ public class BungeeCord extends ProxyServer
                     connectionLock.readLock().unlock();
                 }
 
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ignore) {}
+
                 if ( reconnectHandler != null )
                 {
                     getLogger().info( "Saving reconnect locations" );
