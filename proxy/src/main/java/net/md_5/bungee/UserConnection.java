@@ -67,6 +67,7 @@ public final class UserConnection implements ProxiedPlayer
     @NonNull
     private final ProxyServer bungee;
     @NonNull
+    @Getter
     private final ChannelWrapper ch;
     @Getter
     @NonNull
@@ -96,6 +97,7 @@ public final class UserConnection implements ProxiedPlayer
     @Setter
     private ServerInfo reconnectServer;
     @Getter
+    @Setter
     private TabList tabListHandler;
     @Getter
     @Setter
