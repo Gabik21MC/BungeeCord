@@ -284,13 +284,6 @@ public class InitialHandler extends PacketHandler implements PendingConnection
             case 2:
                 thisState = State.USERNAME;
                 ch.setProtocol( Protocol.LOGIN );
-                if ( BungeeCord.getInstance().getConnectionThrottle() != null )
-                {
-                    if ( BungeeCord.getInstance().getConnectionThrottle().throttle( ( (InetSocketAddress) ch.getHandle().remoteAddress() ).getAddress()) )
-                    {
-                        disconnect(this.bungee.getTranslation("join_throttle_kick", TimeUnit.MILLISECONDS.toSeconds(this.bungee.getConfig().getThrottle())));
-                    }
-                }
                 // Login
                 break;
             default:
@@ -303,6 +296,14 @@ public class InitialHandler extends PacketHandler implements PendingConnection
     {
         Preconditions.checkState( thisState == State.USERNAME, "Not expecting USERNAME" );
         this.loginRequest = loginRequest;
+
+
+        if ( BungeeCord.getInstance().getConnectionThrottle().throttle( ( (InetSocketAddress) ch.getHandle().remoteAddress() ).getAddress()) )
+        {
+            disconnect(this.bungee.getTranslation("join_throttle_kick", TimeUnit.MILLISECONDS.toSeconds(this.bungee.getConfig().getThrottle())));
+            return;
+        }
+
 
         if ( !Protocol.supportedVersions.contains( handshake.getProtocolVersion() ) )
         {
